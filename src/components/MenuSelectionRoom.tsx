@@ -33,11 +33,12 @@ interface UserSelection {
   };
 }
 
-// 미리 설정된 취향 (실제로는 localStorage나 서버에서 가져올 수 있음)
-const defaultPreferences = {
-  liked: ['1', '6', '11', '16'], // 김치찌개, 초밥, 파스타, 짜장면
-  disliked: ['8', '13', '18'] // 돈카츠, 스테이크, 탕수육
-};
+interface SituationPreference {
+  situation: string;
+  liked: string[];
+  disliked: string[];
+  customMenus: MenuItem[];
+}
 
 const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName, onLeaveRoom }) => {
   const [currentUser] = useState(`user_${Date.now()}`);
@@ -55,6 +56,10 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
   const [newMenuName, setNewMenuName] = useState('');
   const [newMenuCategory, setNewMenuCategory] = useState('한식');
   const [newMenuEmoji, setNewMenuEmoji] = useState('🍽️');
+
+  // Preference loading states
+  const [showPreferenceSelect, setShowPreferenceSelect] = useState(false);
+  const [savedPreferences, setSavedPreferences] = useState<SituationPreference[]>([]);
 
   const baseMenuData: MenuItem[] = [
     // 한식
@@ -90,12 +95,14 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     // Load custom menus from preferences and merge with base menus
     const loadMenusWithCustom = () => {
       try {
-        const savedPreferences = localStorage.getItem('mealPreferences');
+        const savedPreferencesData = localStorage.getItem('mealPreferences');
         let customMenus: MenuItem[] = [];
+        let preferences: SituationPreference[] = [];
         
-        if (savedPreferences) {
-          const preferences = JSON.parse(savedPreferences);
-          preferences.forEach((pref: any) => {
+        if (savedPreferencesData) {
+          preferences = JSON.parse(savedPreferencesData);
+          setSavedPreferences(preferences);
+          preferences.forEach((pref: SituationPreference) => {
             customMenus = [...customMenus, ...pref.customMenus];
           });
         }
@@ -117,11 +124,24 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
 
     loadMenusWithCustom();
     
-    // Initialize current user
+    // Initialize current user and simulate other participants for demo
     setUserSelections(prev => ({
       ...prev,
       [currentUser]: {
         name: userName,
+        liked: [],
+        disliked: [],
+        completed: false
+      },
+      // Demo participants
+      'user_demo1': {
+        name: '김철수',
+        liked: [],
+        disliked: [],
+        completed: false
+      },
+      'user_demo2': {
+        name: '이영희',
         liked: [],
         disliked: [],
         completed: false
@@ -160,23 +180,33 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     });
   };
 
-  const loadMyPreferences = () => {
-    // 기존 메뉴들을 모두 available로 돌리기
+  const loadPreferencesBySituation = (situation: string) => {
+    const preference = savedPreferences.find(p => p.situation === situation);
+    if (!preference) {
+      toast({
+        title: "해당 상황의 취향이 없습니다",
+        description: "먼저 취향을 설정해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Reset current selections
     setAvailableMenus(allMenus);
     setLikedMenus([]);
     setDislikedMenus([]);
 
-    // 선호 메뉴들을 liked로 이동
-    const preferredLikedMenus = allMenus.filter(menu => defaultPreferences.liked.includes(menu.id));
-    const preferredDislikedMenus = allMenus.filter(menu => defaultPreferences.disliked.includes(menu.id));
+    // Apply preferences
+    const preferredLikedMenus = allMenus.filter(menu => preference.liked.includes(menu.id));
+    const preferredDislikedMenus = allMenus.filter(menu => preference.disliked.includes(menu.id));
     
     setLikedMenus(preferredLikedMenus);
     setDislikedMenus(preferredDislikedMenus);
     
-    // Available에서 선호/비선호 메뉴들 제거
+    // Update available menus
     const remainingMenus = allMenus.filter(menu => 
-      !defaultPreferences.liked.includes(menu.id) && 
-      !defaultPreferences.disliked.includes(menu.id)
+      !preference.liked.includes(menu.id) && 
+      !preference.disliked.includes(menu.id)
     );
     setAvailableMenus(remainingMenus);
 
@@ -185,14 +215,16 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
       ...prev,
       [currentUser]: {
         ...prev[currentUser],
-        liked: defaultPreferences.liked,
-        disliked: defaultPreferences.disliked
+        liked: preference.liked,
+        disliked: preference.disliked
       }
     }));
 
+    setShowPreferenceSelect(false);
+
     toast({
-      title: "취향이 불러와졌습니다!",
-      description: "미리 설정된 선호도가 적용되었습니다.",
+      title: `${situation} 취향이 불러와졌습니다!`,
+      description: "설정된 선호도가 적용되었습니다.",
     });
   };
 
@@ -285,6 +317,10 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
   };
 
   const categories = ['한식', '일식', '양식', '중식', '기타'];
+
+  // Get participant info
+  const participantNames = Object.values(userSelections).map(user => user.name);
+  const participantCount = participantNames.length;
 
   if (showResults) {
     return (
@@ -406,6 +442,23 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
           </div>
         </div>
 
+        {/* Participants Info */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <Users className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-medium text-blue-800">
+                  현재 {participantCount}명 참여 중
+                </p>
+                <p className="text-sm text-blue-600">
+                  {participantNames.join(', ')}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Instructions */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-4">
@@ -418,26 +471,67 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
 
         {/* Action Buttons */}
         <div className="flex space-x-2">
-          <Button 
-            onClick={loadMyPreferences}
-            className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-          >
-            <Heart className="h-4 w-4 mr-2" />
-            나의 취향 불러오기
-          </Button>
+          <Dialog open={showPreferenceSelect} onOpenChange={setShowPreferenceSelect}>
+            <DialogTrigger asChild>
+              <Button 
+                className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                나의 취향 불러오기
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>상황별 취향 선택</DialogTitle>
+                <DialogDescription>
+                  어떤 상황의 취향을 불러오시겠어요?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {savedPreferences.length > 0 ? (
+                  savedPreferences.map((preference) => (
+                    <Button
+                      key={preference.situation}
+                      onClick={() => loadPreferencesBySituation(preference.situation)}
+                      variant="outline"
+                      className="w-full justify-start"
+                    >
+                      <span className="text-lg mr-2">
+                        {preference.situation === '점심시간' && '🌞'}
+                        {preference.situation === '저녁시간' && '🌙'}
+                        {preference.situation === '술자리' && '🍻'}
+                        {preference.situation === '회식' && '🍽️'}
+                        {preference.situation === '데이트' && '💕'}
+                      </span>
+                      {preference.situation}
+                      <span className="ml-auto text-xs text-gray-500">
+                        좋아요 {preference.liked.length}개, 싫어요 {preference.disliked.length}개
+                      </span>
+                    </Button>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 py-4">
+                    저장된 취향이 없습니다.<br />
+                    메인 화면에서 취향을 먼저 설정해주세요.
+                  </p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Dialog open={showAddMenu} onOpenChange={setShowAddMenu}>
             <DialogTrigger asChild>
               <Button 
                 variant="outline"
-                className="border-gray-200"
+                className="border-gray-200 flex items-center space-x-1"
               >
                 <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">메뉴 추가</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>메뉴 추가하기</DialogTitle>
+                <DialogTitle>새 메뉴 직접 추가</DialogTitle>
                 <DialogDescription>
                   원하는 메뉴를 직접 추가해보세요
                 </DialogDescription>
@@ -482,6 +576,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                   onClick={addCustomMenu}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white"
                 >
+                  <Plus className="h-4 w-4 mr-2" />
                   메뉴 추가하기
                 </Button>
               </div>
