@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, Users, Menu as MenuIcon, Check } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { toast } from "@/hooks/use-toast";
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import RandomSpinner from './RandomSpinner';
 
@@ -249,7 +248,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center space-y-4">
-                  <QRCode value={`${window.location.origin}?room=${roomId}`} size={200} />
+                  <QRCodeSVG value={`${window.location.origin}?room=${roomId}`} size={200} />
                   <Button onClick={shareRoom} className="w-full">
                     링크 복사하기
                   </Button>
