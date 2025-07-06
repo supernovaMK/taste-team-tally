@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# 페르소나: 처음 팀 프로젝트 사람을 만난 학생 - 슬링키 (24세)
 
-## Project info
+## 기본 정보
+- **직업:** 우아한테크코스 학생
+- **라이프스타일:**
+  - 매일 개발 공부에 몰입
+  - 점심 메뉴 같은 사소한 선택에도 어려움을 느낌
+  - 처음 만난 사람들과의 조심스러운 소통
+- **목표:** 처음 보는 사람들과도 빠르고 효율적으로 점심 메뉴를 결정하여 불필요한 고민과 시간을 줄이기
+- **니즈:**
+  - 싫어하는 메뉴를 소거해서 선택지를 좁힘
+  - 남은 메뉴 중 빠르게 결정하거나 랜덤으로 결정
+- **페인 포인트:**
+  - 메뉴 선택으로 인한 결정 피로
+  - 점심시간이 짧아 고민할 시간이 부족함
 
-**URL**: https://lovable.dev/projects/debc68c5-7da5-4b27-9f62-9f87bca8acc9
+---
 
-## How can I edit this code?
+##  사용자 시나리오 및 스토리
 
-There are several ways of editing your application.
+###  바쁜 점심시간의 개발자 학생
+**상황:** 슬링키가 팀원들과 점심시간이 되었지만, 처음 만난 사람들끼리 메뉴를 고르기 어려워 고민함
 
-**Use Lovable**
+### 사용자 시나리오
+1. 스마트폰에서 메뉴 선택 방을 생성
+2. QR 코드 또는 링크로 팀원들에게 방을 공유
+3. 모두 같은 방에 접속해 메뉴 선택 화면 확인
+4. 각자 먹기 싫은 메뉴와 먹고 싶은 메뉴를 드래그로 분류
+5. 필요시, 미리 저장해둔 "점심시간 설정값"을 자동으로 적용
+6. 모든 설정 완료 후, 공통으로 가능한 메뉴 목록 확인
+7. 가능한 메뉴 중에서 빠르게 하나 선택하거나, 랜덤 돌림판으로 결정
+8. 결정된 메뉴를 공유 후 점심 해결
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/debc68c5-7da5-4b27-9f62-9f87bca8acc9) and start prompting.
+### 사용자 스토리
+> "우테코 학생으로서, 저는 점심시간에 빠르게 팀원들과 메뉴를 결정하고 싶습니다. 그래서 개발 공부에 더 많은 시간을 집중하고 싶습니다."
 
-Changes made via Lovable will be committed automatically to this repo.
+### 인수 조건
+| Given | When | Then |
+|------|------|------|
+| 사용자가 메뉴 선택 방에 접속했을 때 | 각자 먹기 싫은 메뉴, 먹고 싶은 메뉴를 설정했을 때 | 교집합으로 가능한 메뉴를 3초 이내에 보여준다 |
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+##  핵심 가치 제안
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **빠른 협업 결정 지원:** 모두가 싫어하지 않는 메뉴만 남겨 빠르게 결정 가능
+- **직관적인 인터페이스:** 드래그 앤 드롭 방식으로 누구나 쉽게 사용 가능
+- **반복 최적화:** 개인 선호 메뉴를 미리 설정해두어 매번 반복 입력 필요 없음
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+##  핵심 기능
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+| 기능 명             | 설명                                                         |
+|------------------|------------------------------------------------------------|
+| 교집합 메뉴 도출     | 모두의 선호/비선호를 반영해 가능한 메뉴 목록 자동으로 보여주기 |
+| 사전 설정 적용       | 개인 설정값으로 선호/비선호 메뉴를 미리 자동 분류             |
+| 랜덤 돌림판 기능    | 최종 메뉴 결정이 어려울 때 랜덤으로 메뉴 자동 선택           |
+| 실시간 결과 동기화   | 모든 사용자의 선택이 하나의 결과 화면에 실시간으로 반영됨      |
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+##  구현 범위
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/debc68c5-7da5-4b27-9f62-9f87bca8acc9) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+| 범위 항목         | 내용                                               |
+|----------------|--------------------------------------------------|
+| 기능 범위         | 메뉴 선택 및 결과 도출, 랜덤 선택 기능 포함            |
+| 개발 우선순위      | 사용자 설정 → 메뉴 선택 → 결과 도출 → 랜덤 선택        |
+| 프로토타입 수준 구현 | 실제 DB 저장 없이 클라이언트에 임시 저장 및 교집합 도출 프로토타입 수준 |
