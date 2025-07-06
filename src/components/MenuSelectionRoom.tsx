@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, Users, Menu as MenuIcon, Check } from "lucide-react";
+import { ArrowDown, Users, Menu as MenuIcon, Check, Heart } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from 'qrcode.react';
@@ -29,6 +30,12 @@ interface UserSelection {
     completed: boolean;
   };
 }
+
+// 미리 설정된 취향 (실제로는 localStorage나 서버에서 가져올 수 있음)
+const defaultPreferences = {
+  liked: ['1', '6', '11', '16'], // 김치찌개, 초밥, 파스타, 짜장면
+  disliked: ['8', '13', '18'] // 돈카츠, 스테이크, 탕수육
+};
 
 const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName, onLeaveRoom }) => {
   const [currentUser] = useState(`user_${Date.now()}`);
@@ -85,6 +92,42 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     }));
   }, [currentUser, userName]);
 
+  const loadMyPreferences = () => {
+    // 기존 메뉴들을 모두 available로 돌리기
+    setAvailableMenus(menuData);
+    setLikedMenus([]);
+    setDislikedMenus([]);
+
+    // 선호 메뉴들을 liked로 이동
+    const preferredLikedMenus = menuData.filter(menu => defaultPreferences.liked.includes(menu.id));
+    const preferredDislikedMenus = menuData.filter(menu => defaultPreferences.disliked.includes(menu.id));
+    
+    setLikedMenus(preferredLikedMenus);
+    setDislikedMenus(preferredDislikedMenus);
+    
+    // Available에서 선호/비선호 메뉴들 제거
+    const remainingMenus = menuData.filter(menu => 
+      !defaultPreferences.liked.includes(menu.id) && 
+      !defaultPreferences.disliked.includes(menu.id)
+    );
+    setAvailableMenus(remainingMenus);
+
+    // Update user selections
+    setUserSelections(prev => ({
+      ...prev,
+      [currentUser]: {
+        ...prev[currentUser],
+        liked: defaultPreferences.liked,
+        disliked: defaultPreferences.disliked
+      }
+    }));
+
+    toast({
+      title: "취향이 불러와졌습니다!",
+      description: "미리 설정된 선호도가 적용되었습니다.",
+    });
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
@@ -134,14 +177,33 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
       }
     }));
 
-    // Calculate final menus (for demo, just use liked menus)
-    const finalMenusResult = likedMenus.length > 0 ? likedMenus : availableMenus.slice(0, 3);
-    setFinalMenus(finalMenusResult);
+    // 강화된 메뉴 선정 로직
+    // 1. 좋아하는 메뉴 우선
+    // 2. 중립 메뉴 (좋아하지도 싫어하지도 않는 메뉴) 포함
+    const likedMenuIds = likedMenus.map(menu => menu.id);
+    const dislikedMenuIds = dislikedMenus.map(menu => menu.id);
+    const neutralMenuIds = availableMenus.map(menu => menu.id);
+    
+    // 최종 추천: 좋아하는 메뉴 + 중립 메뉴 (싫어하는 메뉴는 제외)
+    const recommendedMenuIds = [...likedMenuIds, ...neutralMenuIds];
+    const finalMenusResult = menuData.filter(menu => recommendedMenuIds.includes(menu.id));
+    
+    // 좋아하는 메뉴를 우선순위로 정렬
+    const sortedFinalMenus = finalMenusResult.sort((a, b) => {
+      const aIsLiked = likedMenuIds.includes(a.id);
+      const bIsLiked = likedMenuIds.includes(b.id);
+      
+      if (aIsLiked && !bIsLiked) return -1;
+      if (!aIsLiked && bIsLiked) return 1;
+      return 0;
+    });
+
+    setFinalMenus(sortedFinalMenus);
     setShowResults(true);
 
     toast({
       title: "선택 완료!",
-      description: "추천 메뉴를 확인해보세요.",
+      description: `${likedMenus.length}개의 선호 메뉴와 ${availableMenus.length}개의 중립 메뉴가 추천되었습니다.`,
     });
   };
 
@@ -158,7 +220,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
 
   if (showResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
+      <div className="min-h-screen bg-white p-4">
         <div className="max-w-md mx-auto space-y-6">
           <div className="text-center py-6">
             <h1 className="text-3xl font-bold text-green-600 mb-2">🎉 결과 발표!</h1>
@@ -166,25 +228,34 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
             <p className="text-sm text-gray-500 mt-1">방 코드: {roomId}</p>
           </div>
 
-          <Card className="shadow-lg border-0 bg-white/90 backdrop-blur">
+          <Card className="shadow-lg border border-gray-200 bg-white">
             <CardHeader>
               <CardTitle className="text-center text-gray-800">🍽️ 추천 메뉴</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {finalMenus.map((menu, index) => (
-                <div key={menu.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{menu.emoji}</span>
-                    <div>
-                      <p className="font-medium text-gray-800">{menu.name}</p>
-                      <p className="text-sm text-gray-500">{menu.category}</p>
+              {finalMenus.map((menu, index) => {
+                const isLiked = likedMenus.some(liked => liked.id === menu.id);
+                return (
+                  <div key={menu.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                    isLiked ? 'bg-gradient-to-r from-green-100 to-blue-100' : 'bg-gray-50'
+                  }`}>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">{menu.emoji}</span>
+                      <div>
+                        <p className="font-medium text-gray-800 flex items-center space-x-1">
+                          <span>{menu.name}</span>
+                          {isLiked && <Heart className="h-4 w-4 text-red-500 fill-current" />}
+                        </p>
+                        <p className="text-sm text-gray-500">{menu.category}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-green-600">#{index + 1}</p>
+                      {isLiked && <p className="text-xs text-red-500">선호</p>}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-green-600">#{index + 1}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -200,7 +271,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
             <Button 
               onClick={onLeaveRoom}
               variant="outline"
-              className="w-full"
+              className="w-full border-gray-200"
             >
               새로운 방 만들기
             </Button>
@@ -225,7 +296,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+    <div className="min-h-screen bg-white p-4">
       <div className="max-w-md mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between py-4">
@@ -236,7 +307,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
           <div className="flex space-x-2">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="border-gray-200">
                   QR 코드
                 </Button>
               </DialogTrigger>
@@ -259,6 +330,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
               onClick={onLeaveRoom}
               variant="outline" 
               size="sm"
+              className="border-gray-200"
             >
               나가기
             </Button>
@@ -275,6 +347,15 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
           </CardContent>
         </Card>
 
+        {/* Load Preferences Button */}
+        <Button 
+          onClick={loadMyPreferences}
+          className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+        >
+          <Heart className="h-4 w-4 mr-2" />
+          나의 취향 불러오기
+        </Button>
+
         <DragDropContext onDragEnd={handleDragEnd}>
           {/* Available Menus by Category */}
           <div className="space-y-4">
@@ -283,7 +364,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
               if (categoryMenus.length === 0) return null;
               
               return (
-                <Card key={category} className="shadow-lg border-0 bg-white/80 backdrop-blur">
+                <Card key={category} className="shadow-lg border border-gray-200 bg-white">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg text-gray-800">{category}</CardTitle>
                   </CardHeader>
@@ -329,7 +410,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
           {/* Selection Areas */}
           <div className="space-y-4 mt-6">
             {/* Liked */}
-            <Card className="shadow-lg border-0 bg-gradient-to-r from-green-100 to-emerald-100 border-green-200">
+            <Card className="shadow-lg border border-green-200 bg-gradient-to-r from-green-100 to-emerald-100">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-green-700 flex items-center space-x-2">
                   <span>😋</span>
@@ -379,7 +460,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
             </Card>
 
             {/* Disliked */}
-            <Card className="shadow-lg border-0 bg-gradient-to-r from-red-100 to-pink-100 border-red-200">
+            <Card className="shadow-lg border border-red-200 bg-gradient-to-r from-red-100 to-pink-100">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-red-700 flex items-center space-x-2">
                   <span>😞</span>
@@ -436,14 +517,14 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
             onClick={completeSelection}
             className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
             size="lg"
-            disabled={likedMenus.length === 0}
+            disabled={likedMenus.length === 0 && availableMenus.length === menuData.length}
           >
             <Check className="h-5 w-5 mr-2" />
             선택 완료하기
           </Button>
-          {likedMenus.length === 0 && (
+          {likedMenus.length === 0 && availableMenus.length === menuData.length && (
             <p className="text-center text-sm text-gray-500 mt-2">
-              최소 1개 이상의 음식을 선택해주세요
+              최소 1개 이상의 음식을 분류해주세요
             </p>
           )}
         </div>

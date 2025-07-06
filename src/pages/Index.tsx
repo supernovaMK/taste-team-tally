@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +86,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+    <div className="min-h-screen bg-white p-4">
       <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
         <div className="text-center py-8">
@@ -95,7 +96,7 @@ const Index = () => {
         </div>
 
         {/* User Name Input */}
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
+        <Card className="shadow-lg border border-gray-200 bg-white">
           <CardHeader>
             <CardTitle className="text-center text-gray-800">시작하기</CardTitle>
             <CardDescription className="text-center">
@@ -120,7 +121,7 @@ const Index = () => {
 
         {/* Action Cards */}
         <div className="space-y-4">
-          <Card className="shadow-lg border-0 bg-gradient-to-r from-orange-500 to-red-500 text-white cursor-pointer hover:from-orange-600 hover:to-red-600 transition-all duration-200 transform hover:scale-105" onClick={createRoom}>
+          <Card className="shadow-lg border border-orange-200 bg-gradient-to-r from-orange-500 to-red-500 text-white cursor-pointer hover:from-orange-600 hover:to-red-600 transition-all duration-200 transform hover:scale-105" onClick={createRoom}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="bg-white/20 p-3 rounded-full">
@@ -134,7 +135,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
+          <Card className="shadow-lg border border-gray-200 bg-white">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-gray-800">
                 <Users className="h-5 w-5" />
@@ -168,7 +169,7 @@ const Index = () => {
         </div>
 
         {/* Info Card */}
-        <Card className="shadow-lg border-0 bg-blue-50/80 border-blue-200">
+        <Card className="shadow-lg border border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="text-center text-sm text-blue-700 space-y-1">
               <p className="font-medium">💡 사용법</p>
