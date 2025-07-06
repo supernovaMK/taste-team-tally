@@ -254,7 +254,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     
     // 최종 추천: 좋아하는 메뉴 + 중립 메뉴 (싫어하는 메뉴는 제외)
     const recommendedMenuIds = [...likedMenuIds, ...neutralMenuIds];
-    const finalMenusResult = menuData.filter(menu => recommendedMenuIds.includes(menu.id));
+    const finalMenusResult = allMenus.filter(menu => recommendedMenuIds.includes(menu.id));
     
     // 좋아하는 메뉴를 우선순위로 정렬
     const sortedFinalMenus = finalMenusResult.sort((a, b) => {
