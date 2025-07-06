@@ -1,20 +1,21 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Users, QrCode } from "lucide-react";
+import { Plus, Users, QrCode, Settings, Heart } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MenuSelectionRoom from '@/components/MenuSelectionRoom';
+import PreferencesManager from '@/components/PreferencesManager';
 
 const Index = () => {
   const [roomId, setRoomId] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
 
   const generateRoomId = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -75,6 +76,12 @@ const Index = () => {
     });
   };
 
+  if (showPreferences) {
+    return (
+      <PreferencesManager onClose={() => setShowPreferences(false)} />
+    );
+  }
+
   if (currentRoom) {
     return (
       <MenuSelectionRoom 
@@ -116,6 +123,28 @@ const Index = () => {
                 className="mt-1 bg-white border-gray-200 focus:border-orange-400 focus:ring-orange-400"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Preferences Section */}
+        <Card className="shadow-lg border border-purple-200 bg-gradient-to-r from-purple-100 to-pink-100">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/70 p-3 rounded-full">
+                <Settings className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-purple-800">내 취향 미리 골라놓기!</h3>
+                <p className="text-purple-700 text-sm">상황별로 선호 메뉴를 미리 설정해보세요</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowPreferences(true)}
+              className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+            >
+              <Heart className="h-4 w-4 mr-2" />
+              취향 설정하러 가기
+            </Button>
           </CardContent>
         </Card>
 

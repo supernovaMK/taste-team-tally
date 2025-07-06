@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, Users, Menu as MenuIcon, Check, Heart } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowDown, Users, Menu as MenuIcon, Check, Heart, Plus } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import RandomSpinner from './RandomSpinner';
 
 interface MenuSelectionRoomProps {
@@ -20,6 +21,7 @@ interface MenuItem {
   name: string;
   category: string;
   emoji: string;
+  isCustom?: boolean;
 }
 
 interface UserSelection {
@@ -46,8 +48,15 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
   const [showResults, setShowResults] = useState(false);
   const [finalMenus, setFinalMenus] = useState<MenuItem[]>([]);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [allMenus, setAllMenus] = useState<MenuItem[]>([]);
+  
+  // Manual menu addition states
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [newMenuName, setNewMenuName] = useState('');
+  const [newMenuCategory, setNewMenuCategory] = useState('한식');
+  const [newMenuEmoji, setNewMenuEmoji] = useState('🍽️');
 
-  const menuData: MenuItem[] = [
+  const baseMenuData: MenuItem[] = [
     // 한식
     { id: '1', name: '김치찌개', category: '한식', emoji: '🍲' },
     { id: '2', name: '불고기', category: '한식', emoji: '🥩' },
@@ -78,7 +87,35 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
   ];
 
   useEffect(() => {
-    setAvailableMenus(menuData);
+    // Load custom menus from preferences and merge with base menus
+    const loadMenusWithCustom = () => {
+      try {
+        const savedPreferences = localStorage.getItem('mealPreferences');
+        let customMenus: MenuItem[] = [];
+        
+        if (savedPreferences) {
+          const preferences = JSON.parse(savedPreferences);
+          preferences.forEach((pref: any) => {
+            customMenus = [...customMenus, ...pref.customMenus];
+          });
+        }
+        
+        // Remove duplicates and merge
+        const uniqueCustomMenus = customMenus.filter((menu, index, self) => 
+          index === self.findIndex(m => m.name === menu.name)
+        );
+        
+        const mergedMenus = [...baseMenuData, ...uniqueCustomMenus];
+        setAllMenus(mergedMenus);
+        setAvailableMenus(mergedMenus);
+      } catch (error) {
+        console.log('No saved preferences found, using base menus');
+        setAllMenus(baseMenuData);
+        setAvailableMenus(baseMenuData);
+      }
+    };
+
+    loadMenusWithCustom();
     
     // Initialize current user
     setUserSelections(prev => ({
@@ -92,21 +129,52 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     }));
   }, [currentUser, userName]);
 
+  const addCustomMenu = () => {
+    if (!newMenuName.trim()) {
+      toast({
+        title: "메뉴 이름을 입력해주세요",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newMenu: MenuItem = {
+      id: `custom_${Date.now()}`,
+      name: newMenuName,
+      category: newMenuCategory,
+      emoji: newMenuEmoji,
+      isCustom: true
+    };
+
+    const updatedMenus = [...allMenus, newMenu];
+    setAllMenus(updatedMenus);
+    setAvailableMenus(prev => [...prev, newMenu]);
+
+    setNewMenuName('');
+    setNewMenuEmoji('🍽️');
+    setShowAddMenu(false);
+
+    toast({
+      title: "메뉴가 추가되었습니다!",
+      description: `${newMenuName}이(가) 선택지에 추가되었습니다.`,
+    });
+  };
+
   const loadMyPreferences = () => {
     // 기존 메뉴들을 모두 available로 돌리기
-    setAvailableMenus(menuData);
+    setAvailableMenus(allMenus);
     setLikedMenus([]);
     setDislikedMenus([]);
 
     // 선호 메뉴들을 liked로 이동
-    const preferredLikedMenus = menuData.filter(menu => defaultPreferences.liked.includes(menu.id));
-    const preferredDislikedMenus = menuData.filter(menu => defaultPreferences.disliked.includes(menu.id));
+    const preferredLikedMenus = allMenus.filter(menu => defaultPreferences.liked.includes(menu.id));
+    const preferredDislikedMenus = allMenus.filter(menu => defaultPreferences.disliked.includes(menu.id));
     
     setLikedMenus(preferredLikedMenus);
     setDislikedMenus(preferredDislikedMenus);
     
     // Available에서 선호/비선호 메뉴들 제거
-    const remainingMenus = menuData.filter(menu => 
+    const remainingMenus = allMenus.filter(menu => 
       !defaultPreferences.liked.includes(menu.id) && 
       !defaultPreferences.disliked.includes(menu.id)
     );
@@ -132,7 +200,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
-    const draggedMenu = menuData.find(menu => menu.id === draggableId);
+    const draggedMenu = allMenus.find(menu => menu.id === draggableId);
     if (!draggedMenu) return;
 
     // Remove from source
@@ -216,7 +284,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
     });
   };
 
-  const categories = ['한식', '일식', '양식', '중식'];
+  const categories = ['한식', '일식', '양식', '중식', '기타'];
 
   if (showResults) {
     return (
@@ -245,6 +313,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                         <p className="font-medium text-gray-800 flex items-center space-x-1">
                           <span>{menu.name}</span>
                           {isLiked && <Heart className="h-4 w-4 text-red-500 fill-current" />}
+                          {menu.isCustom && <span className="text-xs bg-purple-100 text-purple-600 px-1 rounded">커스텀</span>}
                         </p>
                         <p className="text-sm text-gray-500">{menu.category}</p>
                       </div>
@@ -347,14 +416,78 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
           </CardContent>
         </Card>
 
-        {/* Load Preferences Button */}
-        <Button 
-          onClick={loadMyPreferences}
-          className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-        >
-          <Heart className="h-4 w-4 mr-2" />
-          나의 취향 불러오기
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex space-x-2">
+          <Button 
+            onClick={loadMyPreferences}
+            className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+          >
+            <Heart className="h-4 w-4 mr-2" />
+            나의 취향 불러오기
+          </Button>
+
+          <Dialog open={showAddMenu} onOpenChange={setShowAddMenu}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline"
+                className="border-gray-200"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>메뉴 추가하기</DialogTitle>
+                <DialogDescription>
+                  원하는 메뉴를 직접 추가해보세요
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">메뉴 이름</label>
+                    <Input
+                      placeholder="예: 떡볶이"
+                      value={newMenuName}
+                      onChange={(e) => setNewMenuName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">이모지</label>
+                    <Input
+                      placeholder="🍽️"
+                      value={newMenuEmoji}
+                      onChange={(e) => setNewMenuEmoji(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">카테고리</label>
+                  <Select value={newMenuCategory} onValueChange={setNewMenuCategory}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={addCustomMenu}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  메뉴 추가하기
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
           {/* Available Menus by Category */}
@@ -391,7 +524,10 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                                 >
                                   <div className="text-center">
                                     <div className="text-2xl mb-1">{menu.emoji}</div>
-                                    <div className="text-sm font-medium text-gray-800">{menu.name}</div>
+                                    <div className="text-sm font-medium text-gray-800 flex items-center justify-center space-x-1">
+                                      <span>{menu.name}</span>
+                                      {menu.isCustom && <span className="text-xs bg-purple-100 text-purple-600 px-1 rounded">💎</span>}
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -441,7 +577,10 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                             >
                               <div className="text-center">
                                 <div className="text-xl mb-1">{menu.emoji}</div>
-                                <div className="text-xs font-medium text-gray-800">{menu.name}</div>
+                                <div className="text-xs font-medium text-gray-800 flex items-center justify-center space-x-1">
+                                  <span>{menu.name}</span>
+                                  {menu.isCustom && <span className="text-xs">💎</span>}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -491,7 +630,10 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                             >
                               <div className="text-center">
                                 <div className="text-xl mb-1">{menu.emoji}</div>
-                                <div className="text-xs font-medium text-gray-800">{menu.name}</div>
+                                <div className="text-xs font-medium text-gray-800 flex items-center justify-center space-x-1">
+                                  <span>{menu.name}</span>
+                                  {menu.isCustom && <span className="text-xs">💎</span>}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -500,7 +642,7 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
                       {provided.placeholder}
                       {dislikedMenus.length === 0 && !snapshot.isDraggingOver && (
                         <div className="col-span-2 text-center text-red-600 text-sm py-4">
-                          먹고 싶지 않은 음식을 여기로 드래그하세요
+                          먹고 싫지 않은 음식을 여기로 드래그하세요
                         </div>
                       )}
                     </div>
@@ -517,12 +659,12 @@ const MenuSelectionRoom: React.FC<MenuSelectionRoomProps> = ({ roomId, userName,
             onClick={completeSelection}
             className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
             size="lg"
-            disabled={likedMenus.length === 0 && availableMenus.length === menuData.length}
+            disabled={likedMenus.length === 0 && availableMenus.length === allMenus.length}
           >
             <Check className="h-5 w-5 mr-2" />
             선택 완료하기
           </Button>
-          {likedMenus.length === 0 && availableMenus.length === menuData.length && (
+          {likedMenus.length === 0 && availableMenus.length === allMenus.length && (
             <p className="text-center text-sm text-gray-500 mt-2">
               최소 1개 이상의 음식을 분류해주세요
             </p>
